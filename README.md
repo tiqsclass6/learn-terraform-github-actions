@@ -1,4 +1,6 @@
-# Learn Terraform with GitHub Actions - Step-by-Step Guide
+# Learn Terraform with GitHub Actions  
+
+## Step-by-Step Guide
 
 ## Overview
 
@@ -59,6 +61,7 @@ For Terraform to deploy infrastructure through GitHub Actions, you need to set u
 The **GitHub Actions workflow files** located in `.github/workflows/` automate various Terraform-related processes. The key workflows include:
 
 ### `terraform-plan.yml`
+
 1. **Checkout Code**: Fetches the repository contents.
 2. **Setup Terraform**: Installs Terraform on the runner.
 3. **Terraform Format & Validate**: Ensures Terraform code syntax follows best practices.
