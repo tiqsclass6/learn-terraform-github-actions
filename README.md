@@ -134,4 +134,4 @@ This repository successfully integrates:
 
 By following these steps, you ensure a **scalable, automated, and secure infrastructure deployment process**. For contributions or issues, submit a **Pull Request** or open an **Issue** in GitHub!
 
-**Happy Automating!** 🚀
+**Happy Automating!**
