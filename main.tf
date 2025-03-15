@@ -1,57 +1,47 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
 
-
-
-
 provider "aws" {
   region = "us-east-1"
 }
 
 terraform {
-
-  cloud {
-    organization = "TIQS"
-
-    workspaces {
-      name = "learn-terraform-github-actions"
-    }
+  backend "local" {
+    path = "terraform.tfstate"
   }
-
 
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 3.0"
+      version = "~> 5.0"
     }
   }
 }
 
-resource "aws_instance" "web" {
-  ami                    = "ami-0e2c8caa4b6378d8c"
-  instance_type          = "t2.micro"
-  vpc_security_group_ids = [aws_security_group.web-sg.id]
+# Create a VPC
+resource "aws_vpc" "app1" {
+  cidr_block = "10.32.0.0/16"
 
-  user_data = <<-EOF
-              #!/bin/bash
-              apt-get update
-              apt-get install -y apache2
-              sed -i -e 's/80/8080/' /etc/apache2/ports.conf
-              echo "Hello World" > /var/www/html/index.html
-              systemctl restart apache2
-              EOF
+  tags = {
+    Name = "app1-vpc"
+  }
 }
 
+# Generate a random name for security groups
+resource "random_pet" "sg" {}
+
+# Security Group for Web Server
 resource "aws_security_group" "web-sg" {
-  name = "${random_pet.sg.id}-sg"
+  name   = "${random_pet.sg.id}-sg"
+  vpc_id = aws_vpc.app1.id
+
   ingress {
-    description = "MyEvilBox"
+    description = "Allow RDP"
     from_port   = 3389
     to_port     = 3389
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
 
   egress {
     from_port   = 0
@@ -61,124 +51,66 @@ resource "aws_security_group" "web-sg" {
   }
 
   tags = {
-    Name    = "app1-sg01-servers"
-    Service = "application1"
-    Owner   = "Luke"
-    Planet  = "Musafar"
+    Name = "web-sg"
   }
-
 }
 
+# Security Group for App1 Servers
+resource "aws_security_group" "app1-sg01-servers" {
+  name   = "app1-sg01-servers"
+  vpc_id = aws_vpc.app1.id
 
-#These are   for  public
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
-resource "aws_subnet" "public-eu-west-1a" {
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "app1-sg01-servers"
+  }
+}
+
+# Public Subnets
+resource "aws_subnet" "public-us-east-1a" {
   vpc_id                  = aws_vpc.app1.id
   cidr_block              = "10.32.1.0/24"
-  availability_zone       = "eu-west-1a"
+  availability_zone       = "us-east-1a"
   map_public_ip_on_launch = true
 
   tags = {
-    Name    = "public-eu-west-1a"
-    Service = "application1"
-    Owner   = "Luke"
-    Planet  = "Musafar"
+    Name = "public-us-east-1a"
   }
 }
 
-resource "aws_subnet" "public-eu-west-1b" {
-  vpc_id                  = aws_vpc.app1.id
-  cidr_block              = "10.32.2.0/24"
-  availability_zone       = "eu-west-1b"
-  map_public_ip_on_launch = true
-
-  tags = {
-    Name    = "public-eu-west-1b"
-    Service = "application1"
-    Owner   = "Luke"
-    Planet  = "Musafar"
-  }
-}
-
-
-resource "aws_subnet" "public-eu-west-1c" {
-  vpc_id                  = aws_vpc.app1.id
-  cidr_block              = "10.32.3.0/24"
-  availability_zone       = "eu-west-1c"
-  map_public_ip_on_launch = true
-
-  tags = {
-    Name    = "public-eu-west-1c"
-    Service = "application1"
-    Owner   = "Luke"
-    Planet  = "Musafar"
-  }
-}
-
-#these are for private
-resource "aws_subnet" "private-eu-west-1a" {
-  vpc_id            = aws_vpc.app1.id
-  cidr_block        = "10.32.11.0/24"
-  availability_zone = "eu-west-1a"
-
-  tags = {
-    Name    = "private-eu-west-1a"
-    Service = "application1"
-    Owner   = "Luke"
-    Planet  = "Musafar"
-  }
-}
-
-resource "aws_subnet" "private-eu-west-1b" {
-  vpc_id            = aws_vpc.app1.id
-  cidr_block        = "10.32.12.0/24"
-  availability_zone = "eu-west-1b"
-
-  tags = {
-    Name    = "private-eu-west-1b"
-    Service = "application1"
-    Owner   = "Luke"
-    Planet  = "Musafar"
-  }
-}
-
-
-resource "aws_subnet" "private-eu-west-1c" {
-  vpc_id            = aws_vpc.app1.id
-  cidr_block        = "10.32.13.0/24"
-  availability_zone = "eu-west-1c"
-
-  tags = {
-    Name    = "private-eu-west-1c"
-    Service = "application1"
-    Owner   = "Luke"
-    Planet  = "Musafar"
-  }
-}
-
+# Internet Gateway
 resource "aws_internet_gateway" "igw" {
   vpc_id = aws_vpc.app1.id
 
   tags = {
-    Name    = "app1_IG"
-    Service = "application1"
-    Owner   = "Luke"
-    Planet  = "Musafar"
+    Name = "app1_IG"
   }
 }
 
-
+# Elastic IP for NAT
 resource "aws_eip" "nat" {
-  vpc = true
-
   tags = {
     Name = "nat"
   }
 }
 
+# NAT Gateway
 resource "aws_nat_gateway" "nat" {
   allocation_id = aws_eip.nat.id
-  subnet_id     = aws_subnet.public-eu-west-1a.id
+  subnet_id     = aws_subnet.public-us-east-1a.id
 
   tags = {
     Name = "nat"
@@ -187,97 +119,26 @@ resource "aws_nat_gateway" "nat" {
   depends_on = [aws_internet_gateway.igw]
 }
 
-resource "aws_route_table" "private" {
-  vpc_id = aws_vpc.app1.id
-
-  route = [
-    {
-      cidr_block                 = "0.0.0.0/0"
-      nat_gateway_id             = aws_nat_gateway.nat.id
-      carrier_gateway_id         = ""
-      destination_prefix_list_id = ""
-      egress_only_gateway_id     = ""
-      gateway_id                 = ""
-      instance_id                = ""
-      ipv6_cidr_block            = ""
-      local_gateway_id           = ""
-      network_interface_id       = ""
-      transit_gateway_id         = ""
-      vpc_endpoint_id            = ""
-      vpc_peering_connection_id  = ""
-    },
-  ]
-
-  tags = {
-    Name = "private"
-  }
-}
-
+# Route Table for Public Subnet
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.app1.id
 
-  route = [
-    {
-      cidr_block                 = "0.0.0.0/0"
-      gateway_id                 = aws_internet_gateway.igw.id
-      nat_gateway_id             = ""
-      carrier_gateway_id         = ""
-      destination_prefix_list_id = ""
-      egress_only_gateway_id     = ""
-      instance_id                = ""
-      ipv6_cidr_block            = ""
-      local_gateway_id           = ""
-      network_interface_id       = ""
-      transit_gateway_id         = ""
-      vpc_endpoint_id            = ""
-      vpc_peering_connection_id  = ""
-    },
-  ]
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.igw.id
+  }
 
   tags = {
     Name = "public"
   }
 }
 
-resource "aws_route_table_association" "private-eu-west-1a" {
-  subnet_id      = aws_subnet.private-eu-west-1a.id
-  route_table_id = aws_route_table.private.id
-}
-
-resource "aws_route_table_association" "private-eu-west-1b" {
-  subnet_id      = aws_subnet.private-eu-west-1b.id
-  route_table_id = aws_route_table.private.id
-}
-resource "aws_route_table_association" "private-eu-west-1c" {
-  subnet_id      = aws_subnet.private-eu-west-1c.id
-  route_table_id = aws_route_table.private.id
-}
-
-
-#public
-
-resource "aws_route_table_association" "public-eu-west-1a" {
-  subnet_id      = aws_subnet.public-eu-west-1a.id
+resource "aws_route_table_association" "public-us-east-1a" {
+  subnet_id      = aws_subnet.public-us-east-1a.id
   route_table_id = aws_route_table.public.id
 }
 
-resource "aws_route_table_association" "public-eu-west-1b" {
-  subnet_id      = aws_subnet.public-eu-west-1b.id
-  route_table_id = aws_route_table.public.id
-}
-
-resource "aws_route_table_association" "public-eu-west-1c" {
-  subnet_id      = aws_subnet.public-eu-west-1c.id
-  route_table_id = aws_route_table.public.id
-}
-
-
-
-
-
-
-
-
+# Launch Template for EC2 Instance
 resource "aws_launch_template" "app1_LT" {
   name_prefix   = "app1_LT"
   image_id      = "ami-06ed60ed1369448bd"
@@ -318,7 +179,7 @@ resource "aws_launch_template" "app1_LT" {
     <body>
     <div>
     <h1>Malgus Clan</h1>
-    <h1>Chains Broken in Ireland</h1>
+    <h1>Chains Broken in the US</h1>
     <p><b>Instance Name:</b> $(hostname -f) </p>
     <p><b>Instance Private Ip Address: </b> $local_ipv4</p>
     <p><b>Availability Zone: </b> $az</p>
@@ -328,7 +189,6 @@ resource "aws_launch_template" "app1_LT" {
     </html>
     HTML
 
-    # Clean up the temp files
     rm -f /tmp/local_ipv4 /tmp/az /tmp/macid
   EOF
   )
@@ -336,10 +196,7 @@ resource "aws_launch_template" "app1_LT" {
   tag_specifications {
     resource_type = "instance"
     tags = {
-      Name    = "app1_LT"
-      Service = "application1"
-      Owner   = "Chewbacca"
-      Planet  = "Mustafar"
+      Name = "app1_LT"
     }
   }
 
