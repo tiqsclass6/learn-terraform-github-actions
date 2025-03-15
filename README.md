@@ -1,137 +1,166 @@
-# Learn Terraform with GitHub Actions  
+# 🚀 User Guide: Automating Terraform with GitHub Actions
 
-## Step-by-Step Guide
-
-## Overview
-
-This repository demonstrates how to use **Terraform** in combination with **GitHub Actions** for automating infrastructure deployments. The repository is structured to facilitate Infrastructure as Code (IaC) principles while leveraging CI/CD automation with GitHub Actions.
+This guide provides a step-by-step approach to setting up, using, and managing **Terraform with GitHub Actions** for infrastructure automation.
 
 ---
 
-## Step 1: Clone the Repository
+## 📌 Table of Contents
 
-Begin by cloning the repository to your local machine:
+- [📖 Introduction](#introduction)
+- [🔧 Prerequisites](#prerequisites)
+- [⚙️ Setting Up the Project](#setting-up-the-project)
+- [🤖 Understanding GitHub Actions Workflow](#understanding-github-actions-workflow)
+- [📌 Managing Infrastructure with Terraform](#managing-infrastructure-with-terraform)
+- [🗑️ Destroying Resources](#destroying-resources)
+- [🔧 Troubleshooting & FAQs](#troubleshooting--faqs)
+- [📚 References](#references)
+
+---
+
+## 📖 Introduction
+
+This project automates **Terraform deployments** using **GitHub Actions**. Every time you push code changes to the repository, Terraform automatically runs and applies changes to your AWS infrastructure.
+
+With this setup, you can:
+✅ Manage AWS infrastructure as **code**  
+✅ Automate deployment using **GitHub Actions**  
+✅ Ensure infrastructure consistency with **Terraform state management**  
+
+---
+
+## 🔧 Prerequisites
+
+Before you begin, make sure you have:
+
+- **Git & GitHub**
+  - Install [Git](https://git-scm.com/downloads)
+  - A **GitHub account**
+- **AWS Account**
+  - Create an **IAM User** with the following permissions:
+    - `AmazonEC2FullAccess`
+    - `AmazonVPCFullAccess`
+    - `IAMFullAccess`
+- **Terraform**
+  - Install [Terraform](https://developer.hashicorp.com/terraform/downloads)
+  - Verify installation:
+
+    ```sh
+    terraform version
+    ```
+
+---
+
+## ⚙️ Setting Up the Project
+
+### 1️⃣ Clone the Repository
 
 ```sh
 git clone https://github.com/tiqsclass6/learn-terraform-github-actions.git
 cd learn-terraform-github-actions
-```
 
-**Impact:** This ensures you have the latest project code locally, allowing you to review the Terraform configurations and GitHub Actions workflows.
+2️⃣ Set Up AWS Credentials in GitHub
+Go to your repository on GitHub
+Navigate to Settings > Secrets and variables > Actions
+Click New repository secret and add:
+AWS_ACCESS_KEY_ID
+AWS_SECRET_ACCESS_KEY
+3️⃣ Initialize Terraform
+Run the following commands to initialize Terraform:
 
----
+sh
+Copy
+Edit
+terraform init
+This downloads necessary Terraform providers and sets up your local environment.
 
-## Step 2: Install Required Tools
+🤖 Understanding GitHub Actions Workflow
+This project contains GitHub Actions workflows inside .github/workflows/:
 
-Ensure the following tools are installed:
+Workflow File Description
+terraform-plan.yml Runs terraform plan on every PR to preview changes.
+terraform-apply.yml Runs terraform apply on the main branch after merging a PR.
+How It Works
+Pull Request Workflow
 
-- **Terraform**: Infrastructure as Code tool.
-- **GitHub CLI (optional)**: For managing GitHub repositories from the command line.
+When you create a Pull Request (PR), GitHub Actions runs terraform plan to preview changes.
+The Terraform plan is commented on the PR.
+Merge & Apply Workflow
 
-Verify installations:
+When the PR is merged to main, GitHub Actions runs terraform apply to deploy changes automatically.
+📌 Managing Infrastructure with Terraform
+1️⃣ Making Infrastructure Changes
+Modify the Terraform configuration (main.tf, variables.tf, etc.).
 
-```sh
-terraform -version  # Check Terraform version
-gh --version        # Check GitHub CLI version (if installed)
-```
+Stage and commit your changes:
 
-**Impact:** Having these tools installed is necessary to execute Terraform commands locally and interact with GitHub.
+sh
+Copy
+Edit
+git add .
+git commit -m "Updated Terraform infrastructure"
+git push origin feature-branch
+Open a Pull Request (PR) in GitHub.
 
----
+2️⃣ Reviewing Terraform Plan
+GitHub Actions will automatically run terraform plan and post the output as a comment on your PR.
+3️⃣ Merging to Apply Changes
+Once the plan looks good, merge the PR into main.
+Terraform Apply runs automatically via GitHub Actions to provision the infrastructure.
+🗑️ Destroying Resources
+To manually destroy your infrastructure:
 
-## Step 3: Configure GitHub Secrets for Terraform Authentication
+sh
+Copy
+Edit
+terraform destroy
+This removes all AWS resources created by Terraform.
 
-For Terraform to deploy infrastructure through GitHub Actions, you need to set up **GitHub Secrets**.
+Alternatively, to disable Terraform Apply in GitHub Actions:
 
-1. Navigate to your repository on GitHub.
-2. Go to **Settings** > **Secrets and variables** > **Actions**.
-3. Add the following secrets:
+Navigate to Settings > Actions > General
+Set Workflow permissions to Read repository contents only.
+🔧 Troubleshooting & FAQs
+❓ Terraform Apply Failed on GitHub Actions
+✅ Solution: Check the Actions logs for errors. Common issues:
 
-   - `AWS_ACCESS_KEY_ID`: AWS credentials for Terraform deployments.
-   - `AWS_SECRET_ACCESS_KEY`: AWS secret key for Terraform.
-   - `TF_CLOUD_ORG`: Terraform Cloud organization name (if using Terraform Cloud).
-   - `TF_API_TOKEN`: Terraform API token (if using Terraform Cloud).
+Invalid AWS credentials (Check GitHub Secrets)
+Syntax errors in main.tf
+AWS quota exceeded
+❓ How to Rollback Changes?
+✅ Solution: Revert to a previous commit:
 
-**Impact:** These secrets allow the GitHub Actions workflow to authenticate and execute Terraform commands securely.
+sh
+Copy
+Edit
+git revert HEAD~1
+git push origin main
+This triggers a new Terraform run that restores the previous state.
 
----
+❓ How to Manually Run GitHub Actions?
+✅ Solution:
 
-## Step 4: Understand the GitHub Actions Workflows
+Go to Actions in your repository.
+Select the workflow (terraform-apply.yml).
+Click Run Workflow.
+📚 References
+📌 Terraform Docs
+📌 GitHub Actions
+📌 AWS IAM Policies
+🚀 Happy Automating! 🚀
+Feel free to contribute or report issues! 💡
 
-The **GitHub Actions workflow files** located in `.github/workflows/` automate various Terraform-related processes. The key workflows include:
-
-### `terraform-plan.yml`
-
-1. **Checkout Code**: Fetches the repository contents.
-2. **Setup Terraform**: Installs Terraform on the runner.
-3. **Terraform Format & Validate**: Ensures Terraform code syntax follows best practices.
-4. **Terraform Plan**: Generates a dry-run execution plan for review before deployment.
-
-### `terraform-apply.yml`
-
-1. **Checkout Code**: Fetches the repository contents.
-2. **Setup Terraform**: Installs Terraform on the runner.
-3. **Terraform Apply**: Executes the Terraform plan to deploy infrastructure after manual approval.
-
-**Impact:** These workflows ensure automation, security, and compliance in Terraform deployments while reducing human intervention and errors.
-
----
-
-## Step 5: Run GitHub Actions Workflows
-
-### 1️⃣ Trigger Workflow Manually
-
-To trigger the workflow:
-
-1. Navigate to **Actions** in your GitHub repository.
-2. Select the workflow you want to run (**Terraform Plan** or **Terraform Apply**).
-3. Click **Run workflow** to start the pipeline.
-
-### 2️⃣ Monitor Execution
-
-- View real-time logs under **Actions**.
-- Approve Terraform Apply when prompted.
-
-**Impact:** Running the workflows automates infrastructure deployment, improves security, and enforces best practices.
-
----
-
-## Step 6: Verify Terraform Deployment
-
-After the GitHub Actions workflow completes:
-
-- Check the Terraform Cloud UI (if used) for applied infrastructure.
-- Verify deployed AWS resources in the AWS Management Console.
-
-**Impact:** Verifying deployment ensures that infrastructure changes align with the intended configuration.
-
----
-
-## Step 7: Cleanup Resources (Optional)
-
-To avoid unnecessary costs:
-
-- Manually trigger the **Terraform Destroy** workflow from GitHub Actions.
-- Alternatively, run the following command locally:
-
-```sh
-terraform destroy -auto-approve
-```
-
-**Impact:** Cleaning up resources prevents incurring charges for unused infrastructure and maintains a clean environment.
+yaml
+Copy
+Edit
 
 ---
 
-## Summary of Objectives Completed
+### ✅ **How to Use This `README.md`**
+1. **Copy and paste** the content above into a file named **`README.md`**.
+2. **Save the file** in your project root directory.
+3. **Commit & Push to GitHub**:
 
-This repository successfully integrates:
-
-- **Infrastructure as Code (IaC)** with Terraform.
-- **CI/CD automation** using multiple GitHub Actions workflows.
-- **AWS infrastructure provisioning** with Terraform.
-- **Automated Terraform planning and deployment**.
-- **Secure authentication** using GitHub Secrets.
-
-By following these steps, you ensure a **scalable, automated, and secure infrastructure deployment process**. For contributions or issues, submit a **Pull Request** or open an **Issue** in GitHub!
-
-**Happy Automating!**
+   ```sh
+   git add README.md
+   git commit -m "Added complete README.md"
+   git push origin main
